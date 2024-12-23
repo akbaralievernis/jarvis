@@ -1,0 +1,280 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"b",
+				"background-image"
+			],
+			[
+				"ткр",
+				"открой"
+			],
+			[
+				"li",
+				"link"
+			],
+			[
+				"bl",
+				"blue"
+			],
+			[
+				"r",
+				"right"
+			],
+			[
+				"i",
+				"initial"
+			],
+			[
+				"a",
+				"italic"
+			],
+			[
+				"fon",
+				"font-style"
+			],
+			[
+				"fo",
+				"font-size"
+			],
+			[
+				"ht",
+				"html\thtml"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "jarvis-4k-in-red-6yayjpbfe1a5tkek.sublime-workspace",
+			"settings":
+			{
+				"buffer_size": 5192,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+			]
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/app.js",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/Еще один заряд израсходован.wav",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/Заряд батареи, %/Энергия 13%.wav",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/4K - Best of Wallpapers for Andriod and ios.gif",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/avatar.png",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/style.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/index.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/Джарвис - приветствие.wav",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/Район Нью-Йорка, Манхэттэн и окрестности.wav",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/Jarvis Sound Pack от Jarvis Desktop/d148f85aae9e2194148b6301939119cd.mp4",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/Jarvis-AI-main/giphy.gif",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/#2.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/text style.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/adylbek.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/styles.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/script.js",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/toguzkorgool.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/toguz.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/togyz.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/тг",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/вуаа.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/мат анализ.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/style.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/index.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/убегающая кнопка.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/style#1.css",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/index#1.html",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/style #2",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/index#2",
+		"/C/Users/Laptop/OneDrive/Рабочий стол/кружок по программировонию/stile.css"
+	],
+	"find":
+	{
+		"height": 0.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "jarvis-4k-in-red-6yayjpbfe1a5tkek.sublime-workspace",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5192,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								51,
+								51
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JSON/JSON.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 868.666666667,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "jarvis-4k-in-red-6yayjpbfe1a5tkek.sublime-project",
+	"replace":
+	{
+		"height": 0.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
