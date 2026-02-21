@@ -144,6 +144,13 @@
             </div>
         </header>
 
+        <div class="mode-switch" id="modeSwitch">
+            <button class="mode-btn active" id="modeAssistantBtn">Ассистент</button>
+            <button class="mode-btn" id="modeCoachBtn">B2 Коуч</button>
+            <button class="mode-btn lang-btn" id="langToggleBtn">DE</button>
+        </div>
+
+        <div id="assistantRoot">
         <!-- Main Content Grid -->
         <main class="main-grid">
             <!-- API Configuration Card -->
@@ -395,6 +402,17 @@
                 <a href="#" id="exportDataBtn">Экспорт данных</a>
             </div>
         </footer>
+        </div>
+
+        <section class="card coach-panel hidden-by-mode" id="coachRoot">
+            <div class="card-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2 id="coachPanelTitle">B2 German Performance Coach</h2>
+            </div>
+            <p id="coachPanelInfo">Режим коуча открывает модуль строгой B2-практики, не затрагивая логику Jarvis.</p>
+            <button class="btn" id="openCoachBtn">Открыть B2 модуль</button>
+            <iframe id="coachFrame" class="coach-frame" title="ARIS B2 Coach"></iframe>
+        </section>
     </div>
 
     <!-- Подключение скриптов -->
@@ -405,6 +423,7 @@
     <script src="./js/api-manager.js"></script>
     <script src="./js/ui-manager.js"></script>
     <script src="./js/main.js"></script>
+    <script src="./js/b2-mode-manager.js"></script>
     
     <script>
         // Установка текущего года в футере
