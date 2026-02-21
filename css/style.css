@@ -2420,3 +2420,49 @@ select:focus {
         font-size: 1.3rem;
     }
 }
+
+/* ===== Dual Mode Upgrade (Assistant + B2 Coach) ===== */
+.mode-switch {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0 18px;
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    border: 1px solid rgba(31,79,133,.2);
+    background: #ffffff;
+    color: #1f4f85;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, #0f7a65, #1f4f85);
+    color: #fff;
+    border-color: transparent;
+}
+
+.lang-btn {
+    margin-left: auto;
+}
+
+.hidden-by-mode {
+    display: none !important;
+}
+
+.coach-panel {
+    margin-top: 8px;
+}
+
+.coach-frame {
+    width: 100%;
+    min-height: 78vh;
+    border: 1px solid #dbe6ef;
+    border-radius: 14px;
+    margin-top: 12px;
+    background: #f7f4ed;
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARIS B2 — German Performance System</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-bar">
+        <div>
+          <p class="eyebrow">Language Performance Engine</p>
+          <h1>ARIS B2</h1>
+        </div>
+        <div class="milestone">
+          <span id="milestone-label">September B2 Target</span>
+          <strong id="milestone-percent">0%</strong>
+        </div>
+      </header>
+
+      <main class="content" id="app-content" aria-live="polite"></main>
+
+      <section class="quick-action" id="quick-action">
+        <button id="primary-action" class="mic-btn">🎙 Start Session</button>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button data-route="dashboard" class="nav-link active" id="nav-dashboard">Dashboard</button>
+        <button data-route="coach" class="nav-link" id="nav-coach">Coach</button>
+        <button data-route="grammar" class="nav-link" id="nav-grammar">Grammar</button>
+        <button data-route="writing" class="nav-link" id="nav-writing">Writing</button>
+        <button data-route="vocab" class="nav-link" id="nav-vocab">Vocab</button>
+        <button data-route="exam" class="nav-link" id="nav-exam">Exam</button>
+      </nav>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
