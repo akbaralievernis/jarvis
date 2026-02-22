@@ -25,6 +25,9 @@ class UIManager {
             this.setupAccessibility();
             this.checkResponsive();
             this.loadState();
+            this.renderTopbar();
+            this.renderAssistantPanel();
+            this.renderChat();
             
             console.log('✅ UI инициализирован');
             
@@ -61,6 +64,7 @@ class UIManager {
             'pitchValue': '#pitchValue',
             'volumeValue': '#volumeValue',
             'testVoiceBtn': '#testVoiceBtn',
+            'autoLanguageToggle': '#autoLanguageToggle',
             
             // Голосовое управление
             'voiceButton': '#voiceButton',
@@ -89,7 +93,19 @@ class UIManager {
             'memoryList': '#memoryList',
             'memoryCount': '#memoryCount',
             'memorySize': '#memorySize',
-            'helpBtn': '#helpBtn'
+            'helpBtn': '#helpBtn',
+            'commandBar': '#commandBar',
+            'dailyPlanList': '#dailyPlanList',
+            'dailyStreak': '#dailyStreak',
+            'missionDoneBtn': '#missionDoneBtn',
+            'weaknessList': '#weaknessList',
+            'microTaskBox': '#microTaskBox',
+            'repeatMicroTaskBtn': '#repeatMicroTaskBtn',
+            'roleplayState': '#roleplayState',
+            'roleplayModal': '#roleplayModal',
+            'closeRoleplayModal': '#closeRoleplayModal',
+            'roleplayQuestion': '#roleplayQuestion',
+            'roleplayHint': '#roleplayHint'
         };
 
         await this.delay(100);
@@ -126,6 +142,26 @@ class UIManager {
             if (toast) {
                 this.hideToast(toast);
             }
+        }
+
+        const commandBtn = target.closest('[data-command]');
+        if (commandBtn) {
+            this.emit('textMessage', commandBtn.dataset.command);
+            return;
+        }
+
+        const roleBtn = target.closest('[data-roleplay]');
+        if (roleBtn) {
+            this.emit('roleplayStart', roleBtn.dataset.roleplay);
+            return;
+        }
+
+        const msgTool = target.closest('.msg-tool-btn');
+        if (msgTool) {
+            this.emit('messageTool', {
+                action: msgTool.dataset.action,
+                text: msgTool.dataset.text || ''
+            });
         }
     }
 
@@ -200,6 +236,11 @@ class UIManager {
         
         if (voiceSelect) {
             voiceSelect.addEventListener('change', () => this.emitVoiceSettings());
+        }
+
+        const autoLanguageToggle = this.elements.get('autoLanguageToggle');
+        if (autoLanguageToggle) {
+            autoLanguageToggle.addEventListener('change', () => this.emitVoiceSettings());
         }
         
         if (testVoiceBtn) {
@@ -278,6 +319,22 @@ class UIManager {
                 this.showToast('Для помощи откройте README.md или посетите документацию проекта', 'info');
             });
         }
+
+        const missionDoneBtn = this.elements.get('missionDoneBtn');
+        if (missionDoneBtn) {
+            missionDoneBtn.addEventListener('click', () => this.emit('missionDone'));
+        }
+
+        const repeatMicroTaskBtn = this.elements.get('repeatMicroTaskBtn');
+        if (repeatMicroTaskBtn) {
+            repeatMicroTaskBtn.addEventListener('click', () => this.emit('microTaskRepeat'));
+        }
+
+        const closeRoleplayModal = this.elements.get('closeRoleplayModal');
+        if (closeRoleplayModal) {
+            closeRoleplayModal.addEventListener('click', () => this.hideRoleplayModal());
+        }
+
     }
 
     setupTheme() {
@@ -314,7 +371,7 @@ class UIManager {
                 }
                 
                 if (parsed.voiceSettings) {
-                    const { voice, rate, pitch, volume } = parsed.voiceSettings;
+                    const { voice, rate, pitch, volume, autoLanguage } = parsed.voiceSettings;
                     
                     if (voice && this.elements.get('voiceSelect')) {
                         this.elements.get('voiceSelect').value = voice;
@@ -334,6 +391,10 @@ class UIManager {
                         this.elements.get('volumeInput').value = volume;
                         this.updateRangeValue('volume');
                     }
+
+                    if (typeof autoLanguage === 'boolean' && this.elements.get('autoLanguageToggle')) {
+                        this.elements.get('autoLanguageToggle').checked = autoLanguage;
+                    }
                 }
             }
         } catch (error) {
@@ -350,7 +411,8 @@ class UIManager {
                     voice: this.elements.get('voiceSelect')?.value || '',
                     rate: this.elements.get('rateInput')?.value || 1,
                     pitch: this.elements.get('pitchInput')?.value || 1,
-                    volume: this.elements.get('volumeInput')?.value || 1
+                    volume: this.elements.get('volumeInput')?.value || 1,
+                    autoLanguage: !!this.elements.get('autoLanguageToggle')?.checked
                 }
             };
             
@@ -442,9 +504,17 @@ class UIManager {
         
         const formattedText = this.formatMessageText(text);
         
+        const safeRaw = this.escapeHtml(String(text || '')).replace(/"/g, '&quot;');
+
         messageDiv.innerHTML = `
             <div class="message-bubble" role="article">${formattedText}</div>
             <div class="message-time" aria-label="Время сообщения">${timeString}</div>
+            <div class="message-tools">
+                <button class="msg-tool-btn" data-action="repeat" data-text="${safeRaw}">🔊 повторить</button>
+                <button class="msg-tool-btn" data-action="copy" data-text="${safeRaw}">📋 копировать</button>
+                <button class="msg-tool-btn" data-action="translate" data-text="${safeRaw}">🌐 перевести</button>
+                <button class="msg-tool-btn" data-action="explain" data-text="${safeRaw}">📘 объяснить правило</button>
+            </div>
         `;
         
         chatContainer.appendChild(messageDiv);
@@ -622,7 +692,7 @@ class UIManager {
         voiceSelect.appendChild(defaultOption);
         
         const availableVoices = voices
-            .filter(voice => voice.lang.startsWith('ru') || voice.lang.startsWith('en'))
+            .filter(voice => voice.lang.startsWith('ru') || voice.lang.startsWith('en') || voice.lang.startsWith('de'))
             .sort((a, b) => {
                 if (a.lang < b.lang) return -1;
                 if (a.lang > b.lang) return 1;
@@ -641,6 +711,34 @@ class UIManager {
         }
     }
 
+
+    applySpeechSettings(settings = {}) {
+        const voiceSelect = this.elements.get('voiceSelect');
+        const autoLanguageToggle = this.elements.get('autoLanguageToggle');
+        const rateInput = this.elements.get('rateInput');
+        const pitchInput = this.elements.get('pitchInput');
+        const volumeInput = this.elements.get('volumeInput');
+
+        if (voiceSelect && settings.voice && voiceSelect.querySelector(`option[value="${settings.voice}"]`)) {
+            voiceSelect.value = settings.voice;
+        }
+        if (rateInput && typeof settings.rate === 'number') {
+            rateInput.value = settings.rate;
+            this.updateRangeValue('rate');
+        }
+        if (pitchInput && typeof settings.pitch === 'number') {
+            pitchInput.value = settings.pitch;
+            this.updateRangeValue('pitch');
+        }
+        if (volumeInput && typeof settings.volume === 'number') {
+            volumeInput.value = settings.volume;
+            this.updateRangeValue('volume');
+        }
+        if (autoLanguageToggle && typeof settings.autoLanguage === 'boolean') {
+            autoLanguageToggle.checked = settings.autoLanguage;
+        }
+    }
+
     updateRangeValue(type) {
         const input = this.elements.get(`${type}Input`);
         const value = this.elements.get(`${type}Value`);
@@ -656,7 +754,8 @@ class UIManager {
             voice: this.elements.get('voiceSelect')?.value || '',
             rate: parseFloat(this.elements.get('rateInput')?.value) || 1,
             pitch: parseFloat(this.elements.get('pitchInput')?.value) || 1,
-            volume: parseFloat(this.elements.get('volumeInput')?.value) || 1
+            volume: parseFloat(this.elements.get('volumeInput')?.value) || 1,
+            autoLanguage: !!this.elements.get('autoLanguageToggle')?.checked
         };
         
         this.emit('voiceSettingsChange', settings);
@@ -753,6 +852,56 @@ class UIManager {
         if (!hasVisited) {
             setTimeout(() => this.showOnboarding(), 1000);
         }
+    }
+
+
+    renderTopbar() {
+        const modeSwitch = this.elements.get('commandBar');
+        if (modeSwitch) modeSwitch.setAttribute('aria-label', 'Command bar');
+    }
+
+    renderAssistantPanel() {}
+    renderDailyMission(plan = [], state = {}) {
+        const list = this.elements.get('dailyPlanList');
+        const streak = this.elements.get('dailyStreak');
+        if (list && Array.isArray(plan) && plan.length) {
+            list.innerHTML = plan.map((item) => `<li>${this.escapeHtml(item)}</li>`).join('');
+        }
+        if (streak) streak.textContent = String(state.streak || 0);
+    }
+
+    renderInsights(data = {}) {
+        const weaknessList = this.elements.get('weaknessList');
+        const microTaskBox = this.elements.get('microTaskBox');
+        if (weaknessList) {
+            const items = (data.mistakes || []).slice(0, 2);
+            weaknessList.innerHTML = items.length
+                ? items.map((item) => `<div>• ${this.escapeHtml(item)}</div>`).join('')
+                : 'Слабости дня пока не обнаружены.';
+        }
+        if (microTaskBox && data.microTask) {
+            microTaskBox.textContent = `Микрозадание: ${data.microTask}`;
+        }
+    }
+
+    renderChat() {}
+
+    showRoleplayModal(question = '', hint = '') {
+        const modal = this.elements.get('roleplayModal');
+        const q = this.elements.get('roleplayQuestion');
+        const h = this.elements.get('roleplayHint');
+        if (q) q.textContent = question;
+        if (h) h.textContent = hint;
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    hideRoleplayModal() {
+        const modal = this.elements.get('roleplayModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    showSupportBanner(message) {
+        this.showToast(message, 'warning', 7000);
     }
 
     // ==== Вспомогательные методы ====

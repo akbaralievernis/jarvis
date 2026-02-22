@@ -1,5 +1,5 @@
 /**
- * SpeechManager - Полностью исправленный менеджер речи
+ * SpeechManager - менеджер синтеза и распознавания речи
  */
 
 class SpeechManager {
@@ -10,33 +10,34 @@ class SpeechManager {
         this.isSpeaking = false;
         this.voices = [];
         this.voicesLoaded = false;
-        
+
         this.settings = {
             voice: null,
+            voiceByLang: { ru: null, de: null, en: null },
             rate: 1,
             pitch: 1,
             volume: 1,
-            language: 'ru-RU'
+            language: 'ru-RU',
+            autoLanguage: true
         };
-        
+
         this.eventListeners = new Map();
         this.speechQueue = [];
         this.isProcessingQueue = false;
-        
+
         this.init();
     }
 
     async init() {
         console.log('🔊 Инициализация SpeechManager...');
-        
+
         try {
+            this.loadVoiceSettings();
             await this.initSpeechSynthesis();
             this.initSpeechRecognition();
-            this.loadVoiceSettings();
             this.setupEventListeners();
-            
+
             console.log('✅ SpeechManager готов');
-            
         } catch (error) {
             console.error('❌ Ошибка инициализации SpeechManager:', error);
             this.emit('initError', error);
@@ -50,19 +51,12 @@ class SpeechManager {
             return false;
         }
 
-        console.log('🔄 Загрузка голосов...');
-        
-        // Загружаем голоса
         await this.loadVoicesWithRetry();
-        
-        // Устанавливаем обработчик изменения голосов
+
         if (this.synth.onvoiceschanged !== undefined) {
-            this.synth.onvoiceschanged = () => {
-                console.log('🔊 Список голосов изменился');
-                this.loadVoices();
-            };
+            this.synth.onvoiceschanged = () => this.loadVoices();
         }
-        
+
         return true;
     }
 
@@ -70,87 +64,78 @@ class SpeechManager {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const voices = this.synth.getVoices();
-                
                 if (voices.length > 0) {
                     this.voices = voices;
                     this.voicesLoaded = true;
-                    
-                    console.log(`✅ Загружено ${voices.length} голосов`);
+                    this.autoSelectVoiceDefaults();
                     this.emit('voicesLoaded', voices);
-                    
-                    // Автоматически выбираем русский голос
-                    await this.autoSelectRussianVoice();
-                    
+                    this.emit('settingsChanged', this.getSettings());
                     return true;
                 }
-                
-                if (i < maxRetries - 1) {
-                    console.log(`🔄 Попытка ${i + 2}/${maxRetries} загрузки голосов...`);
-                    await this.delay(500);
-                }
-                
+                if (i < maxRetries - 1) await this.delay(400);
             } catch (error) {
-                console.error(`❌ Ошибка загрузки голосов (попытка ${i + 1}):`, error);
+                console.error('❌ Ошибка загрузки голосов:', error);
             }
         }
-        
-        console.warn('⚠️ Не удалось загрузить голоса после нескольких попыток');
+
         this.voicesLoaded = true;
         return false;
     }
 
     loadVoices() {
         if (!this.synth) return;
-        
-        try {
-            const voices = this.synth.getVoices();
-            
-            if (voices.length > 0) {
-                this.voices = voices;
-                this.voicesLoaded = true;
-                this.emit('voicesLoaded', voices);
-                
-                // Обновляем выбранный голос
-                this.updateSelectedVoice();
-            }
-        } catch (error) {
-            console.error('Ошибка обновления голосов:', error);
-        }
+
+        const voices = this.synth.getVoices();
+        if (!voices.length) return;
+
+        this.voices = voices;
+        this.voicesLoaded = true;
+        this.autoSelectVoiceDefaults();
+        this.emit('voicesLoaded', voices);
+        this.emit('settingsChanged', this.getSettings());
     }
 
-    async autoSelectRussianVoice() {
-        if (this.settings.voice) return;
-        
-        const russianVoices = this.voices.filter(v => v.lang.startsWith('ru'));
-        const englishVoices = this.voices.filter(v => v.lang.startsWith('en'));
-        
-        if (russianVoices.length > 0) {
-            // Выбираем первый русский голос
-            this.settings.voice = russianVoices[0].name;
-            console.log(`🎤 Автоматически выбран голос: ${this.settings.voice}`);
-            
-        } else if (englishVoices.length > 0) {
-            // Выбираем английский голос
-            this.settings.voice = englishVoices[0].name;
-            console.log(`🎤 Выбран английский голос: ${this.settings.voice}`);
-            
-        } else if (this.voices.length > 0) {
-            // Выбираем любой доступный голос
-            this.settings.voice = this.voices[0].name;
-            console.log(`🎤 Выбран голос по умолчанию: ${this.settings.voice}`);
+    findBestVoiceForLang(langCode) {
+        const short = (langCode || '').toLowerCase().slice(0, 2);
+        const exact = this.voices.find(v => (v.lang || '').toLowerCase().startsWith(short));
+        if (exact) return exact;
+
+        const en = this.voices.find(v => (v.lang || '').toLowerCase().startsWith('en'));
+        return en || this.voices[0] || null;
+    }
+
+    detectTextLanguage(text) {
+        const value = (text || '').trim();
+        if (!value) return 'ru';
+        if (/[а-яё]/i.test(value)) return 'ru';
+        if (/[äöüß]/i.test(value)) return 'de';
+        if (/\b(ich|nicht|und|weil|würde|könnte|sollte|dass|eine|der|die|das)\b/i.test(value)) return 'de';
+        return 'de';
+    }
+
+    autoSelectVoiceDefaults() {
+        if (!this.voices.length) return;
+
+        if (!this.settings.voiceByLang.ru) {
+            const rv = this.findBestVoiceForLang('ru');
+            if (rv) this.settings.voiceByLang.ru = rv.name;
         }
-        
+
+        if (!this.settings.voiceByLang.de) {
+            const dv = this.findBestVoiceForLang('de');
+            if (dv) this.settings.voiceByLang.de = dv.name;
+        }
+
+        if (!this.settings.voiceByLang.en) {
+            const ev = this.findBestVoiceForLang('en');
+            if (ev) this.settings.voiceByLang.en = ev.name;
+        }
+
+        if (!this.settings.voice) {
+            this.settings.voice = this.settings.voiceByLang.ru || this.settings.voiceByLang.de || this.voices[0]?.name || null;
+        }
+
         this.saveVoiceSettings();
-    }
-
-    updateSelectedVoice() {
-        if (this.settings.voice) {
-            const voiceExists = this.voices.some(v => v.name === this.settings.voice);
-            
-            if (!voiceExists && this.voices.length > 0) {
-                this.autoSelectRussianVoice();
-            }
-        }
     }
 
     loadVoiceSettings() {
@@ -159,73 +144,89 @@ class SpeechManager {
             const savedRate = parseFloat(localStorage.getItem('arisRate')) || 1;
             const savedPitch = parseFloat(localStorage.getItem('arisPitch')) || 1;
             const savedVolume = parseFloat(localStorage.getItem('arisVolume')) || 1;
+            const savedLanguage = localStorage.getItem('arisSpeechLanguage');
+            const savedAutoLanguage = localStorage.getItem('arisAutoLanguage');
+            const savedVoiceByLangRaw = localStorage.getItem('arisVoiceByLang');
 
             this.settings.rate = Math.max(0.5, Math.min(2, savedRate));
             this.settings.pitch = Math.max(0.5, Math.min(2, savedPitch));
             this.settings.volume = Math.max(0, Math.min(1, savedVolume));
 
-            if (savedVoice) {
-                this.settings.voice = savedVoice;
+            if (savedVoice) this.settings.voice = savedVoice;
+            if (savedLanguage) this.settings.language = savedLanguage;
+            if (savedAutoLanguage !== null) this.settings.autoLanguage = savedAutoLanguage === 'true';
+
+            if (savedVoiceByLangRaw) {
+                try {
+                    const parsed = JSON.parse(savedVoiceByLangRaw);
+                    this.settings.voiceByLang = {
+                        ru: parsed?.ru || null,
+                        de: parsed?.de || null,
+                        en: parsed?.en || null
+                    };
+                } catch {
+                    // ignore malformed cache
+                }
             }
 
-            this.emit('settingsChanged', this.settings);
-            
+            this.emit('settingsChanged', this.getSettings());
         } catch (error) {
             console.error('Ошибка загрузки настроек голоса:', error);
         }
     }
 
-    updateSettings(settings) {
+    updateSettings(settings = {}) {
         Object.assign(this.settings, settings);
-        
-        // Валидация значений
+
         this.settings.rate = Math.max(0.5, Math.min(2, this.settings.rate));
         this.settings.pitch = Math.max(0.5, Math.min(2, this.settings.pitch));
         this.settings.volume = Math.max(0, Math.min(1, this.settings.volume));
-        
-        localStorage.setItem('arisVoice', settings.voice || '');
-        localStorage.setItem('arisRate', this.settings.rate.toString());
-        localStorage.setItem('arisPitch', this.settings.pitch.toString());
-        localStorage.setItem('arisVolume', this.settings.volume.toString());
-        
-        this.emit('settingsChanged', this.settings);
+
+        if (typeof settings.autoLanguage === 'boolean') {
+            this.settings.autoLanguage = settings.autoLanguage;
+        }
+
+        if (settings.voice) {
+            const selected = this.voices.find(v => v.name === settings.voice);
+            if (selected) {
+                const short = (selected.lang || '').toLowerCase().slice(0, 2);
+                if (short === 'ru' || short === 'de' || short === 'en') {
+                    this.settings.voiceByLang[short] = selected.name;
+                }
+            }
+        }
+
+        if (this.recognition) {
+            this.recognition.lang = this.settings.language || 'ru-RU';
+        }
+
+        this.saveVoiceSettings();
+        this.emit('settingsChanged', this.getSettings());
     }
 
-    getSelectedVoice() {
-        if (!this.voicesLoaded || this.voices.length === 0) {
-            return null;
+    getSelectedVoice(text = '') {
+        if (!this.voicesLoaded || this.voices.length === 0) return null;
+
+        const lang = this.detectTextLanguage(text);
+        const byLang = this.settings.voiceByLang?.[lang];
+        if (byLang) {
+            const v = this.voices.find(voice => voice.name === byLang);
+            if (v) return v;
         }
-        
+
         if (this.settings.voice) {
-            const voice = this.voices.find(v => v.name === this.settings.voice);
-            if (voice) return voice;
+            const selected = this.voices.find(voice => voice.name === this.settings.voice);
+            if (selected) return selected;
         }
-        
-        // Ищем русский голос
-        const russianVoice = this.voices.find(v => v.lang.startsWith('ru'));
-        if (russianVoice) return russianVoice;
-        
-        // Ищем английский голос
-        const englishVoice = this.voices.find(v => v.lang.startsWith('en'));
-        if (englishVoice) return englishVoice;
-        
-        // Первый доступный голос
-        return this.voices[0] || null;
+
+        return this.findBestVoiceForLang(lang);
     }
 
     async speak(text, options = {}) {
         return new Promise((resolve, reject) => {
-            if (!this.synth) {
-                reject(new Error('Синтез речи не доступен'));
-                return;
-            }
+            if (!this.synth) return reject(new Error('Синтез речи не доступен'));
+            if (!text || typeof text !== 'string' || !text.trim()) return reject(new Error('Текст для произношения пуст'));
 
-            if (!text || typeof text !== 'string' || text.trim().length === 0) {
-                reject(new Error('Текст для произношения пуст'));
-                return;
-            }
-
-            // Останавливаем текущую речь
             if (this.isSpeaking && !options.allowOverlap) {
                 this.synth.cancel();
             }
@@ -233,103 +234,82 @@ class SpeechManager {
             try {
                 const formattedText = this.formatTextForSpeech(text);
                 const utterance = new SpeechSynthesisUtterance(formattedText);
-                
-                // Настраиваем голос
-                const voice = this.getSelectedVoice();
+
+                const voice = this.getSelectedVoice(formattedText);
                 if (voice) {
                     utterance.voice = voice;
                     utterance.lang = voice.lang;
                 } else {
                     utterance.lang = this.settings.language;
                 }
-                
-                // Настраиваем параметры
+
                 utterance.rate = options.rate || this.settings.rate;
                 utterance.pitch = options.pitch || this.settings.pitch;
                 utterance.volume = options.volume || this.settings.volume;
-                
-                // Обработчики событий
+
                 utterance.onstart = () => {
                     this.isSpeaking = true;
-                    console.log('🎤 Начало синтеза');
                     this.emit('speechStart', formattedText);
                 };
 
                 utterance.onend = () => {
                     this.isSpeaking = false;
-                    console.log('✅ Синтез завершен');
-                    this.emit('speechEnd');
+                    this.emit('speechEnd', formattedText);
                     resolve();
                 };
 
                 utterance.onerror = (event) => {
                     this.isSpeaking = false;
-                    console.error('❌ Ошибка синтеза:', event.error);
-                    
-                    let errorMessage = 'Ошибка синтеза речи';
-                    this.emit('speechError', errorMessage);
-                    reject(new Error(errorMessage));
+                    const message = `Ошибка синтеза речи: ${event.error}`;
+                    this.emit('speechError', message);
+                    reject(new Error(message));
                 };
 
-                // Начинаем синтез
-                console.log(`🔊 Произношение текста (${formattedText.length} символов)`);
                 this.synth.speak(utterance);
-
             } catch (error) {
-                console.error('❌ Ошибка создания utterance:', error);
-                reject(new Error(`Ошибка создания utterance: ${error.message}`));
+                this.emit('speechError', error.message);
+                reject(error);
             }
         });
     }
 
-    async say(text, options = {}) {
-        try {
-            const formattedText = this.formatTextForSpeech(text);
-            await this.speak(formattedText, options);
-            return true;
-        } catch (error) {
-            console.error('❌ Ошибка произношения:', error);
-            this.emit('speechError', error.message);
-            return false;
-        }
-    }
-
     initSpeechRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
+
         if (!SpeechRecognition) {
-            console.warn('⚠️ Распознавание речи не поддерживается браузером');
             this.emit('recognitionError', 'Распознавание речи не поддерживается');
             return false;
         }
 
         try {
             this.recognition = new SpeechRecognition();
-            
-            // Настройки распознавания
             this.recognition.lang = this.settings.language;
             this.recognition.continuous = false;
             this.recognition.interimResults = false;
             this.recognition.maxAlternatives = 1;
-            
-            // Обработчики событий
+
             this.recognition.onstart = () => {
                 this.isListening = true;
-                console.log('🎤 Начало распознавания речи');
                 this.emit('recognitionStart');
             };
 
             this.recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                console.log(`📝 Распознано: "${transcript}"`);
+
+                if (this.settings.autoLanguage) {
+                    const detected = this.detectTextLanguage(transcript);
+                    const nextLang = detected === 'ru' ? 'ru-RU' : 'de-DE';
+                    this.settings.language = nextLang;
+                    this.recognition.lang = nextLang;
+                    localStorage.setItem('arisSpeechLanguage', nextLang);
+                }
+
                 this.emit('recognitionResult', transcript);
             };
 
             this.recognition.onerror = (event) => {
-                console.error('❌ Ошибка распознавания речи:', event.error);
-                
                 let errorMessage = '';
-                switch(event.error) {
+                switch (event.error) {
                     case 'no-speech':
                         errorMessage = 'Речь не обнаружена. Пожалуйста, повторите.';
                         break;
@@ -337,26 +317,21 @@ class SpeechManager {
                         errorMessage = 'Микрофон не найден. Проверьте подключение микрофона.';
                         break;
                     case 'not-allowed':
-                        errorMessage = 'Доступ к микрофона запрещен. Разрешите доступ в настройках браузера.';
+                        errorMessage = 'Доступ к микрофону запрещен. Разрешите доступ в браузере.';
                         break;
                     default:
                         errorMessage = `Ошибка распознавания: ${event.error}`;
                 }
-                
                 this.emit('recognitionError', errorMessage);
             };
 
             this.recognition.onend = () => {
                 this.isListening = false;
-                console.log('✅ Распознавание речи завершено');
                 this.emit('recognitionEnd');
             };
 
-            console.log('✅ Распознавание речи инициализировано');
             return true;
-            
         } catch (error) {
-            console.error('❌ Ошибка инициализации распознавания речи:', error);
             this.emit('recognitionError', 'Не удалось инициализировать распознавание речи');
             return false;
         }
@@ -368,31 +343,27 @@ class SpeechManager {
             return;
         }
 
-        if (this.isListening) {
-            this.stopRecognition();
-        } else {
-            this.startRecognition();
-        }
+        if (this.isListening) this.stopRecognition();
+        else this.startRecognition();
     }
 
     startRecognition() {
         if (!this.recognition || this.isListening) return;
-        
+
         try {
+            this.recognition.lang = this.settings.language || 'ru-RU';
             this.recognition.start();
         } catch (error) {
-            console.error('❌ Ошибка запуска распознавания:', error);
             this.emit('recognitionError', 'Не удалось запустить распознавание речи');
         }
     }
 
     stopRecognition() {
         if (!this.recognition || !this.isListening) return;
-        
         try {
             this.recognition.stop();
-        } catch (error) {
-            console.error('❌ Ошибка остановки распознавания:', error);
+        } catch {
+            // noop
         }
     }
 
@@ -419,37 +390,25 @@ class SpeechManager {
     }
 
     async testVoice() {
-        console.log('🎵 Тестирование голоса...');
-        
-        if (!this.hasSpeechSynthesis()) {
-            this.emit('speechError', 'Синтез речи не поддерживается');
-            return false;
-        }
-
-        const testTexts = [
-            "Привет! Я ARIS, ваш голосовой ассистент.",
-            "Добро пожаловать в мир голосовых технологий.",
-            "Я могу помочь вам с различными задачами."
-        ];
+        const isGerman = (this.settings.language || '').toLowerCase().startsWith('de');
+        const testText = isGerman
+            ? 'Guten Tag. Das ist ein Test der deutschen Sprachsynthese.'
+            : 'Привет! Это тест синтеза речи ARIS.';
 
         try {
-            for (const text of testTexts) {
-                await this.speak(text);
-                await this.delay(1000);
-            }
-            
-            console.log('✅ Тест голоса пройден успешно');
+            await this.speak(testText);
             this.emit('testCompleted');
             return true;
-            
         } catch (error) {
-            console.error('❌ Тест голоса не удался:', error);
             this.emit('speechError', `Тест не удался: ${error.message}`);
             return false;
         }
     }
 
-    // ==== Вспомогательные методы ====
+
+    async say(text, options = {}) {
+        return this.speak(text, options);
+    }
 
     hasSpeechSynthesis() {
         return !!window.speechSynthesis;
@@ -464,7 +423,7 @@ class SpeechManager {
     }
 
     getSettings() {
-        return { ...this.settings };
+        return { ...this.settings, voiceByLang: { ...this.settings.voiceByLang } };
     }
 
     getStatus() {
@@ -481,25 +440,23 @@ class SpeechManager {
 
     formatTextForSpeech(text) {
         if (!text || typeof text !== 'string') return '';
-        
+
         let formatted = text
             .replace(/<[^>]*>/g, '')
-            .replace(/["]/g, '')
+            .replace(/[\"]/g, '')
             .replace(/[-]/g, ' ')
             .replace(/[@#$%^&*()_+=\[\]{}|\\<>?]/g, '')
             .replace(/\s+/g, ' ')
             .trim();
-        
-        // Ограничиваем длину
+
         if (formatted.length > 500) {
             formatted = formatted.substring(0, 497) + '...';
         }
-        
+
         return formatted;
     }
 
     setupEventListeners() {
-        // Обработка видимости страницы
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.pauseSpeaking();
@@ -518,12 +475,13 @@ class SpeechManager {
             localStorage.setItem('arisRate', this.settings.rate.toString());
             localStorage.setItem('arisPitch', this.settings.pitch.toString());
             localStorage.setItem('arisVolume', this.settings.volume.toString());
+            localStorage.setItem('arisSpeechLanguage', this.settings.language || 'ru-RU');
+            localStorage.setItem('arisAutoLanguage', String(this.settings.autoLanguage));
+            localStorage.setItem('arisVoiceByLang', JSON.stringify(this.settings.voiceByLang));
         } catch (error) {
             console.error('Ошибка сохранения настроек голоса:', error);
         }
     }
-
-    // ==== Event Emitter ====
 
     on(event, callback) {
         if (!this.eventListeners.has(event)) {
@@ -534,7 +492,7 @@ class SpeechManager {
 
     emit(event, data) {
         if (!this.eventListeners.has(event)) return;
-        
+
         this.eventListeners.get(event).forEach(callback => {
             try {
                 callback(data);
@@ -546,63 +504,38 @@ class SpeechManager {
 
     off(event, callback) {
         if (!this.eventListeners.has(event)) return;
-        
         const listeners = this.eventListeners.get(event);
         const index = listeners.indexOf(callback);
-        if (index !== -1) {
-            listeners.splice(index, 1);
-        }
+        if (index !== -1) listeners.splice(index, 1);
     }
 
     destroy() {
         this.stopSpeaking();
         this.stopRecognition();
-        
-        // Очищаем все слушатели
         this.eventListeners.clear();
-        
-        if (this.synth) {
-            this.synth.cancel();
-        }
-        
-        console.log('🗑️ SpeechManager уничтожен');
+
+        if (this.synth) this.synth.cancel();
     }
 }
 
-// Экспортируем глобальный экземпляр
 if (!window.speechManager) {
     window.speechManager = new SpeechManager();
 }
 
-// Глобальные функции для отладки
 window.debugSpeech = {
     test: () => {
-        console.log('🔍 Тестирование синтеза речи...');
-        
-        if (!window.speechSynthesis) {
-            console.error('❌ window.speechSynthesis не найден');
-            return false;
-        }
-        
-        console.log('✅ window.speechSynthesis доступен');
-        
+        if (!window.speechSynthesis) return false;
         const voices = window.speechSynthesis.getVoices();
         console.log(`🎤 Доступно голосов: ${voices.length}`);
-        
         return true;
     },
-    
     speakTest: async () => {
         try {
             await window.speechManager.speak('Тестирование синтеза речи');
             return true;
-        } catch (error) {
-            console.error('❌ Ошибка теста:', error);
+        } catch {
             return false;
         }
     },
-    
-    getStatus: () => {
-        return window.speechManager?.getStatus() || { error: 'SpeechManager не инициализирован' };
-    }
+    getStatus: () => window.speechManager?.getStatus() || { error: 'SpeechManager не инициализирован' }
 };

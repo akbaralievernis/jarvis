@@ -144,6 +144,19 @@
             </div>
         </header>
 
+        <div class="mode-switch" id="modeSwitch">
+            <button class="mode-btn active" id="modeAssistantBtn">Ассистент</button>
+            <button class="mode-btn" id="modeCoachBtn">B2 Коуч</button>
+            <button class="mode-btn lang-btn" id="langToggleBtn">DE</button>
+        </div>
+
+        <div class="command-bar" id="commandBar">
+            <button class="chip-btn" data-command="Объясни правило">Объясни правило</button>
+            <button class="chip-btn" data-command="Дай 5 примеров">Дай 5 примеров</button>
+            <button class="chip-btn" data-command="Сыграем роль">Сыграем роль</button>
+        </div>
+
+        <div id="assistantRoot">
         <!-- Main Content Grid -->
         <main class="main-grid">
             <!-- API Configuration Card -->
@@ -217,6 +230,14 @@
                         <div class="range-container">
                             <input type="range" id="volumeInput" min="0" max="1" step="0.1" value="1">
                             <span class="range-value" id="volumeValue">1.0</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="autoLanguageToggle"><i class="fas fa-language"></i> Авто-язык распознавания</label>
+                        <div class="range-container" style="justify-content:flex-start; gap:10px;">
+                            <input type="checkbox" id="autoLanguageToggle" checked>
+                            <span>Автоматически переключать язык (ru/de)</span>
                         </div>
                     </div>
                 </div>
@@ -309,6 +330,44 @@
                 </div>
             </section>
             
+
+            <section class="card slide-up delay-4" id="missionCard">
+                <div class="card-header">
+                    <i class="fas fa-bullseye"></i>
+                    <h2>Сегодняшняя миссия</h2>
+                </div>
+                <ul class="mission-list" id="dailyPlanList">
+                    <li>План загружается...</li>
+                </ul>
+                <div class="task-row">
+                    <span>Streak: <strong id="dailyStreak">0</strong></span>
+                    <button class="btn btn-secondary" id="missionDoneBtn">Выполнено</button>
+                </div>
+            </section>
+
+            <section class="card slide-up delay-4" id="insightsCard">
+                <div class="card-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <h2>Ошибки и советы</h2>
+                </div>
+                <div id="weaknessList">Слабости дня появятся после ответа.</div>
+                <div class="feedback" id="microTaskBox">Микрозадание: ожидается...</div>
+                <button class="btn" id="repeatMicroTaskBtn">Повторить</button>
+            </section>
+
+            <section class="card slide-up delay-4" id="roleplayCard">
+                <div class="card-header">
+                    <i class="fas fa-theater-masks"></i>
+                    <h2>Roleplay Mode</h2>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" data-roleplay="interview"><span>Собеседование</span></button>
+                    <button class="quick-action-btn" data-roleplay="cafe"><span>В кафе</span></button>
+                    <button class="quick-action-btn" data-roleplay="exam"><span>Экзамен B2</span></button>
+                </div>
+                <div class="feedback" id="roleplayState">Выберите сценарий, ARIS задаст вопрос.</div>
+            </section>
+
             <!-- Memory Preview Card -->
             <section class="card slide-up delay-4">
                 <div class="card-header">
@@ -395,6 +454,31 @@
                 <a href="#" id="exportDataBtn">Экспорт данных</a>
             </div>
         </footer>
+        </div>
+
+        <section class="card coach-panel hidden-by-mode" id="coachRoot">
+            <div class="card-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2 id="coachPanelTitle">B2 German Performance Coach</h2>
+            </div>
+            <p id="coachPanelInfo">Режим коуча открывает модуль строгой B2-практики, не затрагивая логику Jarvis.</p>
+            <button class="btn" id="openCoachBtn">Открыть B2 модуль</button>
+            <iframe id="coachFrame" class="coach-frame" title="ARIS B2 Coach"></iframe>
+        </section>
+    </div>
+
+
+    <div class="modal-overlay hidden" id="roleplayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Roleplay Session</h3>
+                <button class="modal-close" id="closeRoleplayModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="roleplayQuestion">Вопрос появится здесь.</p>
+                <small id="roleplayHint" class="warn"></small>
+            </div>
+        </div>
     </div>
 
     <!-- Подключение скриптов -->
@@ -404,7 +488,9 @@
     <script src="./js/speech-manager.js"></script>
     <script src="./js/api-manager.js"></script>
     <script src="./js/ui-manager.js"></script>
+    <script src="./js/language-brain.js"></script>
     <script src="./js/main.js"></script>
+    <script src="./js/b2-mode-manager.js"></script>
     
     <script>
         // Установка текущего года в футере

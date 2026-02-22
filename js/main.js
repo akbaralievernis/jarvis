@@ -31,6 +31,7 @@
                 this.setupObservers();
                 this.updateStatusIndicators();
                 this.setupPerformanceMonitoring();
+                this.initializeLanguageUX();
                 
                 // 4. Проверяем первый визит
                 setTimeout(() => this.components.ui.checkFirstVisit(), 1000);
@@ -67,7 +68,8 @@
                 ui: window.uiManager || new UIManager(),
                 memory: window.memoryManager || new MemoryManager(),
                 appLauncher: window.appLauncher || new AppLauncher(),
-                database: window.arisDatabase
+                database: window.arisDatabase,
+                brain: window.arisLanguageBrain
             };
         }
 
@@ -135,6 +137,24 @@
                 this.toggleVoiceRecognition();
             });
 
+            this.components.ui.on('missionDone', () => {
+                this.components.brain?.markMissionCompleted(true);
+                this.components.ui.showToast('Миссия отмечена как выполненная', 'success');
+            });
+
+            this.components.ui.on('microTaskRepeat', () => {
+                const state = this.components.brain?.getState();
+                if (state?.lastMicroTask) this.components.ui.showToast(state.lastMicroTask, 'info');
+            });
+
+            this.components.ui.on('roleplayStart', (scenario) => {
+                this.startRoleplay(scenario);
+            });
+
+            this.components.ui.on('messageTool', async (payload) => {
+                await this.handleMessageTool(payload);
+            });
+
             // События чата
             this.components.ui.on('textMessage', async (message) => {
                 await this.processUserMessage(message);
@@ -190,6 +210,11 @@
 
             this.components.speech.on('voicesLoaded', (voices) => {
                 this.components.ui.updateVoiceSelect(voices);
+                this.components.ui.applySpeechSettings(this.components.speech.getSettings());
+            });
+
+            this.components.speech.on('settingsChanged', (settings) => {
+                this.components.ui.applySpeechSettings(settings);
             });
 
             // Быстрые действия
@@ -242,6 +267,7 @@
             
             try {
                 const cleanMessage = this.cleanMessage(message);
+                this.updateLearningInsights(cleanMessage);
                 
                 // Проверяем команды
                 const command = this.components.memory.parseCommand(cleanMessage);
@@ -362,6 +388,73 @@
                 console.error('Ошибка выполнения команды:', error);
                 await this.processWithAI(originalMessage);
             }
+        }
+
+
+        initializeLanguageUX() {
+            if (!this.components.ui || !this.components.brain) return;
+            const plan = this.components.brain.generateDailyPlan({ level: 'A2→B2' });
+            const state = this.components.brain.getState();
+            this.components.ui.renderDailyMission(plan, { streak: Object.keys(state.weaknessLog || {}).length });
+            this.components.ui.renderInsights({ mistakes: state.lastMistakes || [], microTask: state.lastMicroTask || 'Скажите 2 предложения с weil.' });
+
+            if (!this.components.speech?.hasSpeechRecognition()) {
+                this.components.ui.showSupportBanner('Ваш браузер не поддерживает распознавание речи');
+            }
+
+            const voices = this.components.speech?.getVoices?.() || [];
+            if (!voices.some(v => (v.lang || '').toLowerCase().startsWith('de'))) {
+                this.components.ui.showSupportBanner('Немецкий голос не найден. Установите de-DE speech пакет в системе.');
+            }
+        }
+
+        updateLearningInsights(userText) {
+            if (!this.components.brain || !userText) return;
+            const analysis = this.components.brain.analyzeAnswer(userText, 'de');
+            const state = this.components.brain.getState();
+            state.lastMicroTask = analysis.microTask;
+            localStorage.setItem('aris-language-brain-v1', JSON.stringify(state));
+            this.components.ui.renderInsights(analysis);
+        }
+
+        async handleMessageTool(payload = {}) {
+            const text = payload.text || '';
+            if (!text) return;
+
+            if (payload.action === 'repeat') {
+                await this.components.speech.speak(text);
+                return;
+            }
+            if (payload.action === 'copy') {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.components.ui.showToast('Скопировано', 'success');
+                } catch {
+                    this.components.ui.showToast('Не удалось скопировать', 'error');
+                }
+                return;
+            }
+            if (payload.action === 'translate') {
+                this.components.ui.addMessage(`Переведи на русский: ${text}`, 'user');
+                await this.processWithAI(`Переведи на русский: ${text}`);
+                return;
+            }
+            if (payload.action === 'explain') {
+                this.components.ui.addMessage(`Объясни правило в этой фразе: ${text}`, 'user');
+                await this.processWithAI(`Объясни правило в этой фразе: ${text}`);
+            }
+        }
+
+        startRoleplay(scenario) {
+            const prompts = {
+                interview: 'Vorstellungsgespräch: Warum möchten Sie in unserem Unternehmen arbeiten?',
+                cafe: 'Im Café: Was möchten Sie bestellen und warum?',
+                exam: 'B2 Prüfung: Welche Vor- und Nachteile hat Homeoffice?'
+            };
+            const question = prompts[scenario] || prompts.exam;
+            this.components.ui.showRoleplayModal(question, 'Если молчите 5 сек: Tipp: Ich würde sagen, dass... (Я бы сказал, что...)');
+            this.components.ui.addMessage(question, 'aris');
+            this.components.ui.setVoiceStatus('listening');
         }
 
         setupQuickActions() {
